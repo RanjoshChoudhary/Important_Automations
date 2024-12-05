@@ -66,6 +66,7 @@ def update_worksheet(spreadsheet, sheet_name, dataframe):
     set_with_dataframe(worksheet, dataframe.iloc[:, :7], include_index=False)
 
 def main():
+    # Your SQL queries and corresponding sheet names
     queries_and_sheets = [
         ("""
 -- has our events cta etc to see clicks and tag respectively [[data_playground.ranjosh_detail_pages]]
@@ -175,4 +176,66 @@ if __name__ == '__main__':
     main()
 ###############################################################################
 # GPTs version of this job 
+import boto3
+import redshift_connector
+import pandas as pd
+from gspread_dataframe import set_with_dataframe
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
+
+# Set up connection to Redshift
+def connect_to_redshift():
+    return redshift_connector.connect(
+        host='cuemath.cmiz7uaqdyex.ap-southeast-1.redshift.amazonaws.com',
+        database='cuemath',
+        user='biuser',
+        password=''  # Add your password
+    )
+
+# Execute SQL query on Redshift
+"""
+execute_query function is completely different here, ask GPT to help us understand line by line
+"""
+def execute_query(connection, query):
+    cursor = connection.cursor()
+    cursor.execute(query)
+    columns = [desc[0] for desc in cursor.description]
+    results = cursor.fetchall()
+    return pd.DataFrame(results, columns=columns)
+
+# Connect to Google Sheets
+def setup_google_sheets():
+    scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
+    creds = ServiceAccountCredentials.from_json_keyfile_name('path_to_your_service_account_key.json', scope)
+    client = gspread.authorize(creds)
+    spreadsheet = client.open_by_url('https://docs.google.com/spreadsheets/d/your_google_sheet_id')
+    return spreadsheet
+
+# Update worksheet with data
+def update_worksheet(spreadsheet, sheet_name, dataframe):
+    try:
+        worksheet = spreadsheet.worksheet(sheet_name)
+        worksheet.batch_clear(['A:G'])
+    except gspread.exceptions.WorksheetNotFound:
+        worksheet = spreadsheet.add_worksheet(title=sheet_name, rows="1000", cols="20")
+    set_with_dataframe(worksheet, dataframe.iloc[:, :7], include_index=False)
+
+def main():
+    # Your queries and corresponding sheet names
+    queries_and_sheets = [
+        ("Your Query 1 Here", "data_update"),
+        ("Your Query 2 Here", "data_weekly")
+    ]
+    conn = connect_to_redshift()
+    spreadsheet = setup_google_sheets()
+
+    for query, sheet_name in queries_and_sheets:
+        df = execute_query(conn, query)
+        update_worksheet(spreadsheet, sheet_name, df)
+
+    conn.close()
+
+if __name__ == "__main__":
+    main()
+
 
