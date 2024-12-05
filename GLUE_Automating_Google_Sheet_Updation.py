@@ -1,6 +1,8 @@
+# Problem Statement - 
 # 👍 To run the given script in AWS Glue and schedule it to run every afternoon, 
 # We can not directly run the script as is, as glue runs in a serverless environment and uses PySpark
 # We have to adapt the logic to AWS Glue 
+# ------------------------------------------------------------------------------------------
 
 # Python version compatible with our script - []
 # 👍 AWS GLUE SET UP 👍
@@ -73,100 +75,10 @@ def update_worksheet(spreadsheet, sheet_name, dataframe):
 def main():
     # Your SQL queries and corresponding sheet names
     queries_and_sheets = [
-        ("""
--- has our events cta etc to see clicks and tag respectively [[data_playground.ranjosh_detail_pages]]
-WITH B AS
-(
-SELECT
-CASE
--- CODING
-WHEN attr_current_path ILIKE '%coding%' AND attr_cta='close' AND intent_medium='HOME_FEED_MATH_PLUS_CARD' THEN 'CODING'
-
-WHEN attr_current_path ILIKE '%science%' AND attr_cta='close' AND intent_medium='HOME_FEED_MATH_PLUS_CARD' THEN 'SCIENCE'
-
-WHEN attr_current_path ILIKE '%english%' AND attr_cta='close' AND intent_medium='HOME_FEED_MATH_PLUS_CARD' THEN 'ENGLISH'
-
-WHEN attr_current_path ILIKE '%/sat%' AND attr_cta='close' AND intent_medium='HOME_FEED_MATH_PLUS_CARD' THEN 'SAT'
-END AS Event_Tags
-,*
-FROM
-data_playground.ranjosh_pages
-  )
-
--- SELECT * from B
-, C as (
-SELECT
-event_ts_ist::date as date
-,derived_region
-,Event_Tags
-,COUNT(*)  AS clicks
-,COUNT(DISTINCT parent_id_1)  AS nr_of_parents
-,min(event_ts_ist) AS first_event_date
-,max(event_ts_ist) as recent_event_date
-FROM B
-where Event_Tags IS NOT NULL
-GROUP BY 1, CUBE(2,3)
--- ORDER BY 2, 4 DESC
-  )
-SELECT
-date
-,COALESCE(derived_region,'Overall') as country
-,COALESCE(Event_Tags,'Overall') as t
-,clicks
-,nr_of_parents
-,first_event_date
-,recent_event_date
-from C
-ORDER BY date DESC
-""", "data_update"),
-        (
-         """
-         -- has our events cta etc to see clicks and tag respectively [[data_playground.ranjosh_detail_pages]]
-WITH B AS
-(
-SELECT
-CASE
--- CODING
-WHEN attr_current_path ILIKE '%coding%' AND attr_cta='close' AND intent_medium='HOME_FEED_MATH_PLUS_CARD' THEN 'CODING'
-
-WHEN attr_current_path ILIKE '%science%' AND attr_cta='close' AND intent_medium='HOME_FEED_MATH_PLUS_CARD' THEN 'SCIENCE'
-
-WHEN attr_current_path ILIKE '%english%' AND attr_cta='close' AND intent_medium='HOME_FEED_MATH_PLUS_CARD' THEN 'ENGLISH'
-
-WHEN attr_current_path ILIKE '%/sat%' AND attr_cta='close' AND intent_medium='HOME_FEED_MATH_PLUS_CARD' THEN 'SAT'
-END AS Event_Tags
-,*
-FROM
-data_playground.ranjosh_pages
-  )
-
--- SELECT * from B
-, C as (
-SELECT
-  DATE_TRUNC('week', event_ts_ist::date) AS week
-,derived_region
-,Event_Tags
-,COUNT(*)  AS clicks
-,COUNT(DISTINCT parent_id_1)  AS nr_of_parents
-,min(event_ts_ist) AS first_event_date
-,max(event_ts_ist) as recent_event_date
-FROM B
-where Event_Tags IS NOT NULL
-GROUP BY 1, CUBE(2,3)
--- ORDER BY 2, 4 DESC
-  )
-SELECT
-week
-,COALESCE(derived_region,'Overall') as country
-,COALESCE(Event_Tags,'Overall') as t
-,clicks
-,nr_of_parents
-,first_event_date
-,recent_event_date
-from C
-         """, "data_weekly"
-        )
+        (""" -- INSERT SQL QUERY 1 """, "data_update"),
+        (""" -- INSERT SQL QUERY 2  """, "data_weekly")
     ]
+    # -- Have deleted queries for now , add a normal small one query to check if it is working as intended
 
     conn = connect_to_redshift()
     spreadsheet = setup_google_sheets()
