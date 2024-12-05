@@ -1,8 +1,8 @@
 # 👍 To run the given script in AWS Glue and schedule it to run every afternoon, 
-# We can not directly run the script as is as glue runs in a serverless environment and uses PySpark
+# We can not directly run the script as is, as glue runs in a serverless environment and uses PySpark
 # We have to adapt the logic to AWS Glue 
 
-# Python version compatible with our script - 
+# Python version compatible with our script - []
 # 👍 AWS GLUE SET UP 👍
 #  1] Upload Service Account JSON - 
 # Upload your service_account_key.json file to an S3 bucket and specify the path in the script.
@@ -39,8 +39,13 @@ def connect_to_redshift():
 
 # Execute SQL query on Redshift
 def execute_query(connection, query):
-    return pd.read_sql(query, connection)
-    
+    return pd.read_sql(query, connection) # Function internally depends on libraries like SQLAlchemy
+    """
+    pd.read_sql abstracts query execution and data fetching, 
+    but it doesn't give you control over the cursor's lifecycle. 
+    For environments requiring explicit connection and cursor management, 
+    it's better to use the cursor object directly.
+    """
 # Connect to Google Sheets
 def setup_google_sheets():
     scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
@@ -176,6 +181,9 @@ if __name__ == '__main__':
     main()
 ###############################################################################
 # GPTs version of this job 
+# Ensure the JSON file is present at the specified path and uploaded if running in a cloud environment
+# For AWS Glue, the file should be stored in an S3 bucket, and the script should download it during execution.
+# Google Sheets API Permissions - Google Sheet must be shared with the service account email from the JSON file.
 import boto3
 import redshift_connector
 import pandas as pd
@@ -194,21 +202,24 @@ def connect_to_redshift():
 
 # Execute SQL query on Redshift
 """
-execute_query function is completely different here, ask GPT to help us understand line by line
+execute_query function is different to reduce dependency on SQL Alchemy
 """
 def execute_query(connection, query):
-    cursor = connection.cursor()
-    cursor.execute(query)
-    columns = [desc[0] for desc in cursor.description]
-    results = cursor.fetchall()
-    return pd.DataFrame(results, columns=columns)
+    cursor = connection.cursor()  # Explicitly create a cursor
+    cursor.execute(query)  # Execute the SQL query
+    columns = [desc[0] for desc in cursor.description]  # Extract column names
+    results = cursor.fetchall()  # Fetch all rows
+    return pd.DataFrame(results, columns=columns)  # Convert to a DataFrame
+
 
 # Connect to Google Sheets
 def setup_google_sheets():
     scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
     creds = ServiceAccountCredentials.from_json_keyfile_name('path_to_your_service_account_key.json', scope)
+    # Add path here of the json file that is uploaded to S3 🚨
     client = gspread.authorize(creds)
     spreadsheet = client.open_by_url('https://docs.google.com/spreadsheets/d/your_google_sheet_id')
+    # PASTE GOOGLE SHEET URL HERE 🚨 
     return spreadsheet
 
 # Update worksheet with data
@@ -222,6 +233,7 @@ def update_worksheet(spreadsheet, sheet_name, dataframe):
 
 def main():
     # Your queries and corresponding sheet names
+    # Iterates over a list of queries and updates corresponding sheets in Google Sheets with the query results.
     queries_and_sheets = [
         ("Your Query 1 Here", "data_update"),
         ("Your Query 2 Here", "data_weekly")
@@ -237,5 +249,12 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+"""
+TODO---Error Handling:
+There is minimal error handling in the script. 
+Adding try-except blocks for database and API interactions can make the script more robust.
+"""
 
 
